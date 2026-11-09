@@ -1,7 +1,9 @@
 import { timingSafeEqual } from 'node:crypto'
+import { runs, tasks } from '@trigger.dev/sdk'
 import { Hono } from 'hono'
 import { generateReply } from './assistant.js'
 import type { TelegramUpdate } from './telegram.js'
+import type { generateTextTask } from './trigger/generate-text.js'
 
 const TELEGRAM_API_BASE =
   process.env.TELEGRAM_API_BASE ?? 'https://api.telegram.org'
@@ -60,6 +62,37 @@ export async function sendMessage(
 const app = new Hono()
 
 app.get('/', (c) => c.text('Telegram assistant bot is running'))
+
+// TEMPORARY: public test endpoint for the Trigger.dev + AI SDK wiring.
+// Triggers a task and polls the run so the generated text can be returned.
+// Remove this route once it has served its purpose.
+app.get('/test/ai', async (c) => {
+  const prompt = c.req.query('prompt') ?? 'Say hello in one short sentence.'
+
+  try {
+    const handle = await tasks.trigger<typeof generateTextTask>(
+      'generate-text',
+      { prompt }
+    )
+    const run = await runs.poll<typeof generateTextTask>(handle.id, {
+      pollIntervalMs: 1000
+    })
+
+    if (!run.isSuccess) {
+      return c.json(
+        { error: `Run ${handle.id} finished with status ${run.status}` },
+        500
+      )
+    }
+
+    return c.json({ prompt, text: run.output?.text ?? '' })
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      500
+    )
+  }
+})
 
 app.post('/webhook', async (c) => {
   if (
