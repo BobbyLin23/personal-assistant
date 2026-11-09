@@ -18,6 +18,9 @@ dist/
 .env
 .env.production
 
+# firecrawl cache
+.firecrawl/
+
 # logs
 logs/
 *.log
