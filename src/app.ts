@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { Hono } from 'hono'
+import { generateReply } from './assistant.js'
 import type { TelegramUpdate } from './telegram.js'
 
 const TELEGRAM_API_BASE =
@@ -13,7 +14,16 @@ function isValidSecret(provided: string | undefined, expected: string | undefine
   return a.length === b.length && timingSafeEqual(a, b)
 }
 
-/** Echo text back to the same chat, replying to the original message. */
+/** Telegram rejects messages longer than this many characters. */
+const MAX_MESSAGE_LENGTH = 4096
+
+function truncateForTelegram(text: string) {
+  return text.length <= MAX_MESSAGE_LENGTH
+    ? text
+    : `${text.slice(0, MAX_MESSAGE_LENGTH - 1)}…`
+}
+
+/** Send text to the same chat, replying to the original message. */
 export async function sendMessage(
   chatId: number,
   text: string,
@@ -22,11 +32,14 @@ export async function sendMessage(
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) throw new Error('TELEGRAM_BOT_TOKEN is not set')
 
-  const body: Record<string, unknown> = { chat_id: chatId, text }
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    text: truncateForTelegram(text)
+  }
   if (replyToMessageId !== undefined) {
     body.reply_parameters = {
       message_id: replyToMessageId,
-      // Still deliver the echo if the original message was deleted.
+      // Still deliver the reply if the original message was deleted.
       allow_sending_without_reply: true
     }
   }
@@ -46,7 +59,7 @@ export async function sendMessage(
 
 const app = new Hono()
 
-app.get('/', (c) => c.text('Telegram echo bot is running'))
+app.get('/', (c) => c.text('Telegram assistant bot is running'))
 
 app.post('/webhook', async (c) => {
   if (
@@ -68,11 +81,16 @@ app.post('/webhook', async (c) => {
   const message = update.message
   if (message?.text !== undefined) {
     try {
-      await sendMessage(message.chat.id, message.text, message.message_id)
+      const reply = await generateReply(message.text)
+      await sendMessage(
+        message.chat.id,
+        reply || 'Sorry, I could not generate a reply.',
+        message.message_id
+      )
     } catch (error) {
       // Acknowledge anyway: returning non-2xx makes Telegram redeliver the same
-      // update, which would duplicate the echo once the API recovers.
-      console.error('Failed to echo message:', error)
+      // update, which would duplicate the reply once the API recovers.
+      console.error('Failed to answer message:', error)
     }
   }
 

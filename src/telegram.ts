@@ -1,5 +1,5 @@
 /**
- * Minimal subset of the Telegram Bot API types needed for an echo bot.
+ * Minimal subset of the Telegram Bot API types needed for the assistant bot.
  * Full reference: https://core.telegram.org/bots/api
  */
 
