@@ -1,14 +1,11 @@
 import {
-  createDeepSeek,
-  type DeepSeekLanguageModelChatOptions
+  type DeepSeekLanguageModelChatOptions,
+  deepSeek,
 } from '@ai-sdk/deepseek'
 import { generateText } from 'ai'
 
 /** `deepseek-flash` is DeepSeek's alias for the current V4.x Flash release. */
-const MODEL_ID = 'deepseek-flash'
-
-const baseURL = process.env.DEEPSEEK_BASE_URL
-const deepSeek = createDeepSeek(baseURL ? { baseURL } : {})
+const MODEL_ID = 'deepseek-v4-flash'
 
 const INSTRUCTIONS =
   'You are a helpful personal assistant chatting over Telegram. ' +
