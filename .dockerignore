@@ -1,0 +1,30 @@
+# Agent / skill files — not needed at runtime
+.agents/
+.claude/
+skills-lock.json
+AGENTS.md
+CLAUDE.md
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# Git and editor metadata
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and OS files
+logs/
+*.log
+.DS_Store
+
+# Docker
+Dockerfile
+.dockerignore
